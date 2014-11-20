@@ -26,9 +26,9 @@ angular.module('phonertcdemo')
       var config = { 
         isInitiator: isInitiator,
         turn: {
-          host: 'turn:ec2-54-68-238-149.us-west-2.compute.amazonaws.com:3478',
-          username: 'test',
-          password: 'test'
+          host: 'turn:54.92.67.230:3478',
+          username: 'mark',
+          password: 'mark99'
         },
         streams: {
           audio: true,
