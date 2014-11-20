@@ -20,6 +20,8 @@ Use the [phonertc](http://stackoverflow.com/questions/tagged/phonertc) tag in St
 ###User Guide by Maker Su
 ```
 >cd ~/demo/client
+>npm install
+>bower install
 >cordova plugin add com.ionic.keyboard
 >cordova plugin add org.apache.cordova.statusbar
 >cordova plugin add https://github.com/alongubkin/phonertc.git
