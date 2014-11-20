@@ -18,6 +18,7 @@ Use the [phonertc](http://stackoverflow.com/questions/tagged/phonertc) tag in St
 [![Donate](https://www.paypalobjects.com/en_US/i/btn/btn_donate_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=32QXU3V7GM7PC)
 
 ###User Guide by Maker Su
+```
 >cd ~/demo/client
 >cordova plugin add com.ionic.keyboard
 >cordova plugin add org.apache.cordova.statusbar
@@ -25,4 +26,4 @@ Use the [phonertc](http://stackoverflow.com/questions/tagged/phonertc) tag in St
 >cordova platform add android
 >grunt build
 >cordova run android
-
+```
