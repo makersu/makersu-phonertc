@@ -16,3 +16,13 @@ Want to learn more? [See the wiki.](https://github.com/alongubkin/phonertc/wiki)
 Use the [phonertc](http://stackoverflow.com/questions/tagged/phonertc) tag in StackOverflow for Q/A.
 
 [![Donate](https://www.paypalobjects.com/en_US/i/btn/btn_donate_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=32QXU3V7GM7PC)
+
+###User Guide by Maker Su
+>cd ~/demo/client
+>cordova plugin add com.ionic.keyboard
+>cordova plugin add org.apache.cordova.statusbar
+>cordova plugin add https://github.com/alongubkin/phonertc.git
+>cordova platform add android
+>grunt build
+>cordova run android
+
