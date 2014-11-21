@@ -19,6 +19,11 @@ Use the [phonertc](http://stackoverflow.com/questions/tagged/phonertc) tag in St
 
 ###User Guide by Maker Su
 ```
+>sudo /etc/init.d/rfc5766-turn-server start
+>cd ~/demo/server
+>nodejs index.js
+```
+```
 >cd ~/demo/client
 >npm install
 >bower install
