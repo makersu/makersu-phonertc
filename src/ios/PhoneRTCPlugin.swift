@@ -10,7 +10,7 @@ class PhoneRTCPlugin : CDVPlugin {
     var videoCapturer: RTCVideoCapturer?
     var videoSource: RTCVideoSource?
     var localVideoView: RTCEAGLVideoView?
-    var remoteVideoViews: [RTCEAGLVideoView] = []
+    var remoteVideoViews: [VideoTrackViewPair] = []
     
     var localVideoTrack: RTCVideoTrack?
     var localAudioTrack: RTCAudioTrack?
@@ -18,85 +18,84 @@ class PhoneRTCPlugin : CDVPlugin {
     override init(webView: UIWebView) {
         peerConnectionFactory = RTCPeerConnectionFactory()
         RTCPeerConnectionFactory.initializeSSL()
-        
         super.init(webView: webView)
     }
     
     func createSessionObject(command: CDVInvokedUrlCommand) {
-        let sessionKey = NSUUID().UUIDString
-        
-        // create session config from the JS params
-        let config = SessionConfig(data: command.arguments[0])
-        
-        // make sure the OK callback is permanent as we
-        // use it to send messages to the JS
-        let message: AnyObject = [
-            "type": "__set_session_key",
-            "sessionKey": sessionKey
-        ]
-        
-        let data = NSJSONSerialization.dataWithJSONObject(message,
-            options: NSJSONWritingOptions.allZeros,
-            error: nil)
-       
-        sendMessage(command.callbackId, message: data!)
-        
-        // create a session object and initialize it
-        let session = Session(
-            plugin: self,
-            peerConnectionFactory: peerConnectionFactory,
-            config: config,
-            callbackId: command.callbackId,
-            sessionKey: sessionKey
-        )
-        
-        sessions[sessionKey] = session
-    }
-    
-    func call(command: CDVInvokedUrlCommand) {
-        let container: AnyObject = command.arguments[0]
-        let sessionKey = container.objectForKey("sessionKey")! as String
-   
-        dispatch_async(dispatch_get_main_queue()) {
-            self.sessions[sessionKey]!.call()
-        }
-    }
-    
-    func receiveMessage(command: CDVInvokedUrlCommand) {
-        let container: AnyObject = command.arguments[0]
-        let sessionKey = container.objectForKey("sessionKey")! as String
-        let message = container.objectForKey("message")! as String
-        
-        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0)) {
-            self.sessions[sessionKey]!.receiveMessage(message)
-        }
-    }
-    
-    func renegotiate(command: CDVInvokedUrlCommand) {
-        let container: AnyObject = command.arguments[0]
-        let sessionKey = container.objectForKey("sessionKey")! as String
-        let config: AnyObject = container.objectForKey("config")!
-        
-        dispatch_async(dispatch_get_main_queue()) {
-            let session = self.sessions[sessionKey]!
-            session.config = SessionConfig(data: config)
-            session.createOrUpdateStream()
-        }
-    }
-    
-    func disconnect(command: CDVInvokedUrlCommand) {
-        let container: AnyObject = command.arguments[0]
-        let sessionKey = container.objectForKey("sessionKey")! as String
-
-        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0)) {
-            if (self.sessions[sessionKey] != nil) {
-                self.sessions[sessionKey]!.disconnect(true)
+        if let sessionKey = command.argumentAtIndex(0) as? String {
+            // create a session and initialize it.
+            if let args = command.argumentAtIndex(1) {
+                let config = SessionConfig(data: args)
+                let session = Session(plugin: self, peerConnectionFactory: peerConnectionFactory,
+                    config: config, callbackId: command.callbackId,
+                    sessionKey: sessionKey)
+                sessions[sessionKey] = session
             }
         }
     }
     
+    func call(command: CDVInvokedUrlCommand) {
+        let args: AnyObject = command.argumentAtIndex(0)
+        if let sessionKey = args.objectForKey("sessionKey") as? String {
+            dispatch_async(dispatch_get_main_queue()) {
+                if let session = self.sessions[sessionKey] {
+                    session.call()
+                }
+            }
+        }
+    }
+    
+    func receiveMessage(command: CDVInvokedUrlCommand) {
+        let args: AnyObject = command.argumentAtIndex(0)
+        if let sessionKey = args.objectForKey("sessionKey") as? String {
+            if let message = args.objectForKey("message") as? String {
+                if let session = self.sessions[sessionKey] {
+                    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0)) {
+                        session.receiveMessage(message)
+                    }
+                }
+            }
+        }
+    }
+    
+    func renegotiate(command: CDVInvokedUrlCommand) {
+        let args: AnyObject = command.argumentAtIndex(0)
+        if let sessionKey = args.objectForKey("sessionKey") as? String {
+            if let config: AnyObject = args.objectForKey("config") {
+                dispatch_async(dispatch_get_main_queue()) {
+                    if let session = self.sessions[sessionKey] {
+                        session.config = SessionConfig(data: config)
+                        session.createOrUpdateStream()
+                    }
+                }
+            }
+        }
+    }
+    
+    func disconnect(command: CDVInvokedUrlCommand) {
+        let args: AnyObject = command.argumentAtIndex(0)
+        if let sessionKey = args.objectForKey("sessionKey") as? String {
+            dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0)) {
+                if (self.sessions[sessionKey] != nil) {
+                    self.sessions[sessionKey]!.disconnect(true)
+                }
+            }
+        }
+    }
+
+    func sendMessage(callbackId: String, message: NSData) {
+        let json = NSJSONSerialization.JSONObjectWithData(message,
+            options: NSJSONReadingOptions.MutableLeaves,
+            error: nil) as NSDictionary
+        
+        let pluginResult = CDVPluginResult(status: CDVCommandStatus_OK, messageAsDictionary: json)
+        pluginResult.setKeepCallbackAsBool(true);
+        
+        self.commandDelegate.sendPluginResult(pluginResult, callbackId:callbackId)
+    }
+    
     func setVideoView(command: CDVInvokedUrlCommand) {
-        let config: AnyObject = command.arguments[0]
+        let config: AnyObject = command.argumentAtIndex(0)
         
         dispatch_async(dispatch_get_main_queue()) {
             // create session config from the JS params
@@ -138,7 +137,7 @@ class PhoneRTCPlugin : CDVPlugin {
                     } else {
                         // otherwise, create the local video view
                         self.localVideoView = self.createVideoView(params: params)
-                        self.localVideoView!.videoTrack = self.localVideoTrack!
+                        self.localVideoTrack!.addRenderer(self.localVideoView!)
                     }
                 }
                 
@@ -152,7 +151,7 @@ class PhoneRTCPlugin : CDVPlugin {
             self.localVideoView!.hidden = true;
             
             for remoteVideoView in self.remoteVideoViews {
-                remoteVideoView.hidden = true;
+                remoteVideoView.videoView.hidden = true;
             }
         }
     }
@@ -162,20 +161,9 @@ class PhoneRTCPlugin : CDVPlugin {
             self.localVideoView!.hidden = false;
             
             for remoteVideoView in self.remoteVideoViews {
-                remoteVideoView.hidden = false;
+                remoteVideoView.videoView.hidden = false;
             } 
         }
-    }
-    
-    func sendMessage(callbackId: String, message: NSData) {
-        let json = NSJSONSerialization.JSONObjectWithData(message,
-            options: NSJSONReadingOptions.MutableLeaves,
-            error: nil) as NSDictionary
-        
-        let pluginResult = CDVPluginResult(status: CDVCommandStatus_OK, messageAsDictionary: json)
-        pluginResult.setKeepCallbackAsBool(true);
-        
-        self.commandDelegate.sendPluginResult(pluginResult, callbackId:callbackId)
     }
     
     func createVideoView(params: VideoLayoutParams? = nil) -> RTCEAGLVideoView {
@@ -234,8 +222,8 @@ class PhoneRTCPlugin : CDVPlugin {
         // resized and re-positioned in refreshVideoContainer
         let videoView = createVideoView()
         
-        videoView.videoTrack = videoTrack
-        self.remoteVideoViews.append(videoView)
+        videoTrack.addRenderer(videoView)
+        self.remoteVideoViews.append(VideoTrackViewPair(videoView: videoView, videoTrack: videoTrack))
         
         refreshVideoContainer()
         
@@ -247,10 +235,10 @@ class PhoneRTCPlugin : CDVPlugin {
     func removeRemoteVideoTrack(videoTrack: RTCVideoTrack) {
         dispatch_async(dispatch_get_main_queue()) {
             for var i = 0; i < self.remoteVideoViews.count; i++ {
-                let videoView = self.remoteVideoViews[i]
-                if videoView.videoTrack == videoTrack {
-                    videoView.hidden = true
-                    videoView.removeFromSuperview()
+                let pair = self.remoteVideoViews[i]
+                if pair.videoTrack == videoTrack {
+                    pair.videoView.hidden = true
+                    pair.videoView.removeFromSuperview()
                     self.remoteVideoViews.removeAtIndex(i)
                     self.refreshVideoContainer()
                     return
@@ -287,8 +275,8 @@ class PhoneRTCPlugin : CDVPlugin {
                     + self.videoConfig!.container.x
             
             for var video = 0; video < videosInRow && videoViewIndex < n; video++ {
-                let videoView = self.remoteVideoViews[videoViewIndex++]
-                videoView.frame = CGRectMake(
+                let pair = self.remoteVideoViews[videoViewIndex++]
+                pair.videoView.frame = CGRectMake(
                     CGFloat(x),
                     CGFloat(y),
                     CGFloat(videoSize),
@@ -326,4 +314,9 @@ class PhoneRTCPlugin : CDVPlugin {
             self.videoCapturer = nil
         }
     }
+}
+
+struct VideoTrackViewPair {
+    var videoView: RTCEAGLVideoView
+    var videoTrack: RTCVideoTrack
 }

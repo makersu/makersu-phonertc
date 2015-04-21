@@ -272,8 +272,8 @@ var remoteVideoViews = [];
 
 module.exports = {
   createSessionObject: function (success, error, options) {
-    var sessionKey = uuid();
-    var session = new Session(sessionKey, options[0], success);
+    var sessionKey = options[0];
+    var session = new Session(sessionKey, options[1], success);
 
     session.sendMessage({
       type: '__set_session_key',
@@ -361,13 +361,6 @@ module.exports = {
     });
   }
 };
-
-function uuid() {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-    var r = Math.random()*16|0, v = c == 'x' ? r : (r&0x3|0x8);
-    return v.toString(16);
-  });
-}
 
 function addRemoteStream(stream) {
   var videoView = document.createElement('video');
