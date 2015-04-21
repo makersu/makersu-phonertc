@@ -27,6 +27,8 @@ import org.webrtc.VideoRendererGui;
 import org.webrtc.VideoSource;
 import org.webrtc.VideoTrack;
 
+import org.apache.cordova.LOG;
+
 public class PhoneRTCPlugin extends CordovaPlugin {
 	private AudioSource _audioSource;
 	private AudioTrack _audioTrack;
@@ -339,17 +341,26 @@ public class PhoneRTCPlugin extends CordovaPlugin {
 		
 		if (n > 0) {	
 			createVideoView();
+			LOG.w("refreshVideoView", "n = "+Integer.toString(n));
 			
 			int rows = n < 9 ? 2 : 3;
 			int videosInRow = n == 2 ? 2 : (int)Math.ceil((float)n / rows);
+			LOG.w("refreshVideoView", "videosInRow = "+Integer.toString(videosInRow));
 			
 			int videoSize = (int)((float)_videoConfig.getContainer().getWidth() / videosInRow);
 			int actualRows = (int)Math.ceil((float)n / videosInRow);
 			
-			int y = getCenter(actualRows, videoSize, _videoConfig.getContainer().getHeight());
+			int y = 0;//getCenter(actualRows, videoSize, _videoConfig.getContainer().getHeight());
+
+			LOG.w("refreshVideoView", "videoSize = "+Integer.toString(videoSize));
+			LOG.w("refreshVideoView", "actualRows = "+Integer.toString(actualRows));
+			LOG.w("refreshVideoView", "videoSize = "+Integer.toString(videoSize));
+			LOG.w("refreshVideoView", "containerHeight = "+Integer.toString(_videoConfig.getContainer().getHeight()));
+			LOG.w("refreshVideoView", "y = "+Integer.toString(y));
 			
 			int videoIndex = 0;
 			int videoSizeAsPercentage = getPercentage(videoSize, _videoConfig.getContainer().getWidth());
+			LOG.w("refreshVideoView", "videoSizeAsPercentage = "+Integer.toString(videoSizeAsPercentage));
 			
 			for (int row = 0; row < rows && videoIndex < n; row++) {
 				int x = getCenter(row < row - 1 || n % rows == 0 ? 
@@ -373,9 +384,16 @@ public class PhoneRTCPlugin extends CordovaPlugin {
 			}
 			
 			if (_videoConfig.getLocal() != null && _localVideo != null) {
+				LOG.w("refreshVideoView", "local x = "+Integer.toString(_videoConfig.getLocal().getX()));
+				LOG.w("refreshVideoView", "local y = "+Integer.toString(_videoConfig.getLocal().getY()));
+				LOG.w("refreshVideoView", "x = "+Integer.toString(getPercentage(_videoConfig.getLocal().getX(), _videoConfig.getContainer().getWidth())));
+				LOG.w("refreshVideoView", "y = "+Integer.toString(getPercentage(_videoConfig.getLocal().getY(), _videoConfig.getContainer().getHeight()+_videoConfig.getLocal().getHeight()/2+10)));
+				LOG.w("refreshVideoView", "width = "+Integer.toString(getPercentage(_videoConfig.getLocal().getWidth(), _videoConfig.getContainer().getWidth())));
+				LOG.w("refreshVideoView", "height = "+Integer.toString(getPercentage(_videoConfig.getLocal().getHeight(), _videoConfig.getContainer().getHeight())));
+
 				_localVideo.getVideoTrack().addRenderer(new VideoRenderer(
 						VideoRendererGui.create(getPercentage(_videoConfig.getLocal().getX(), _videoConfig.getContainer().getWidth()), 
-												getPercentage(_videoConfig.getLocal().getY(), _videoConfig.getContainer().getHeight()), 
+												getPercentage(_videoConfig.getLocal().getY(), _videoConfig.getContainer().getHeight()+_videoConfig.getLocal().getHeight()/2+10), 
 												getPercentage(_videoConfig.getLocal().getWidth(), _videoConfig.getContainer().getWidth()), 
 												getPercentage(_videoConfig.getLocal().getHeight(), _videoConfig.getContainer().getHeight()), 
 												VideoRendererGui.ScalingType.SCALE_FILL,
